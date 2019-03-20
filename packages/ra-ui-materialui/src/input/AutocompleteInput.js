@@ -98,6 +98,7 @@ export class AutocompleteInput extends React.Component {
         dirty: false,
         searchText: '',
         suggestions: [],
+        selectedItem: null,
     };
 
     ignoreNextChoicesUpdate = false;
@@ -105,14 +106,23 @@ export class AutocompleteInput extends React.Component {
     anchorEl = null;
 
     static getDerivedStateFromProps(props, state) {
-        if(state.dirty) {
+        const { choices, input, optionValue, optionText } = props;
+        const selectedItem = choices.find(choice => choice[optionValue] === input.value);
+        if (state.dirty) {
             return {
                 ...state,
+                selectedItem,
                 suggestions: props.choices,
             };
         }
 
-        return state;
+        return {
+            ...state,
+            searchText: typeof optionText === 'function'
+                ? optionText(selectedItem)
+                : get(selectedItem, optionText, ''),
+            selectedItem,
+        };
     }
 
     getSuggestionValue = suggestion => get(suggestion, this.props.optionValue);
@@ -334,20 +344,20 @@ export class AutocompleteInput extends React.Component {
     };
 
     handleBlur = () => {
-        const { dirty, searchText } = this.state;
+        const { dirty, searchText, selectedItem } = this.state;
         const { allowEmpty, input } = this.props;
         if (dirty) {
-            if (searchText === '' && allowEmpty) {
+            if (!searchText && allowEmpty) {
                 input && input.onBlur && input.onBlur('');
             } else {
-                input && input.onBlur && input.onBlur(this.getSuggestionText(input.value));
+                input && input.onBlur && input.onBlur(this.getSuggestionValue(selectedItem));
                 this.setState({
                     dirty: false,
-                    searchText: input.value,
+                    searchText: this.getSuggestionText(selectedItem),
                 });
             }
         } else {
-            input && input.onBlur && input.onBlur(this.getSuggestionText(input.value));
+            input && input.onBlur && input.onBlur(this.getSuggestionValue(selectedItem));
         }
     };
 
@@ -376,8 +386,7 @@ export class AutocompleteInput extends React.Component {
             options,
             ...rest
         } = this.props;
-        const { searchText, suggestions } = this.state;
-        console.log({ searchText });
+        const { searchText, suggestions, selectedItem } = this.state;
 
         return (
             <Autosuggest
