@@ -108,11 +108,12 @@ export class AutocompleteInput extends React.Component {
     static getDerivedStateFromProps(props, state) {
         const { choices, input, optionValue, optionText, allowEmpty } = props;
         const selectedItem = choices.find(choice => choice[optionValue] === input.value);
+        const emptySuggestion = {
+            [optionValue]: null,
+            [optionText]: '',
+        };
+        const suggestions = allowEmpty ? props.choices.concat(emptySuggestion) : props.choices;
         if (state.dirty) {
-            const suggestions = allowEmpty ? props.choices.concat({
-                [optionValue]: null,
-                [optionText]: '',
-            }) : props.choices;
 
             return {
                 ...state,
@@ -127,6 +128,7 @@ export class AutocompleteInput extends React.Component {
                 ? optionText(selectedItem)
                 : get(selectedItem, optionText, ''),
             selectedItem,
+            suggestions: selectedItem ? (allowEmpty ? [selectedItem, emptySuggestion] : [selectedItem]) : suggestions
         };
     }
 
@@ -135,6 +137,10 @@ export class AutocompleteInput extends React.Component {
         const { selectedItem } = this.state;
         if (selectedItem) {
             this.updateFilter(selectedItem[optionText]);
+            this.setState({
+                suggestions: [selectedItem],
+                searchText: selectedItem[optionText],
+            });
         }
     }
 
