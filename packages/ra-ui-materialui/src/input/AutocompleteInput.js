@@ -95,7 +95,7 @@ const styles = theme => createStyles({
  */
 export class AutocompleteInput extends React.Component {
     state = {
-        dirty: false,
+        searching: false,
         searchText: '',
         suggestions: [],
         selectedItem: null,
@@ -113,7 +113,7 @@ export class AutocompleteInput extends React.Component {
             [optionText]: '',
         };
         const suggestions = allowEmpty ? props.choices.concat(emptySuggestion) : props.choices;
-        if (state.dirty) {
+        if (state.searching) {
 
             return {
                 ...state,
@@ -167,6 +167,7 @@ export class AutocompleteInput extends React.Component {
         const inputValue = this.getSuggestionValue(suggestion);
         this.setState({
             searchText: suggestion.name,
+            searching: false,
         });
         if (input && input.onChange) {
             input.onChange(inputValue);
@@ -178,7 +179,6 @@ export class AutocompleteInput extends React.Component {
     };
 
     handleSuggestionsFetchRequested = ({ value }) => {
-        this.setState({ dirty: true });
         this.updateFilter(value);
     };
 
@@ -188,7 +188,7 @@ export class AutocompleteInput extends React.Component {
     }
 
     handleSuggestionsClearRequested = () => {
-        this.setState({ suggestions: [], dirty: false });
+        this.setState({ suggestions: [], searching: false });
     };
 
     handleChangeFilter = (event, { newValue, method }) => {
@@ -196,7 +196,7 @@ export class AutocompleteInput extends React.Component {
             case 'type':
             case 'escape':
                 {
-                    this.setState({ searchText: newValue, dirty: true });
+                    this.setState({ searchText: newValue, searching: true });
                 }
                 break;
         }
@@ -363,15 +363,15 @@ export class AutocompleteInput extends React.Component {
     };
 
     handleBlur = () => {
-        const { dirty, searchText, selectedItem } = this.state;
+        const { searching, searchText, selectedItem } = this.state;
         const { allowEmpty, input } = this.props;
-        if (dirty) {
+        if (searching) {
             if (!searchText && allowEmpty) {
                 input && input.onBlur && input.onBlur('');
             } else {
                 input && input.onBlur && input.onBlur(this.getSuggestionValue(selectedItem));
                 this.setState({
-                    dirty: false,
+                    searching: false,
                     searchText: this.getSuggestionText(selectedItem),
                 });
             }
@@ -379,6 +379,10 @@ export class AutocompleteInput extends React.Component {
             input && input.onBlur && input.onBlur(this.getSuggestionValue(selectedItem));
         }
     };
+
+    handleFocus = () => {
+        this.setState({ searching: true });
+    }
 
     shouldRenderSuggestions = val => {
         const { shouldRenderSuggestions } = this.props;
@@ -405,7 +409,7 @@ export class AutocompleteInput extends React.Component {
             options,
             ...rest
         } = this.props;
-        const { searchText, suggestions, selectedItem } = this.state;
+        const { searchText, suggestions } = this.state;
 
         return (
             <Autosuggest
