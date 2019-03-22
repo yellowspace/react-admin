@@ -1,8 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import get from 'lodash/get';
-import isEqual from 'lodash/isEqual';
-import Autosuggest from 'react-autosuggest';
 import Paper from '@material-ui/core/Paper';
 import Popper from '@material-ui/core/Popper';
 import TextField from '@material-ui/core/TextField';
@@ -12,8 +10,9 @@ import parse from 'autosuggest-highlight/parse';
 import match from 'autosuggest-highlight/match';
 import compose from 'recompose/compose';
 import classnames from 'classnames';
+import Downshift from 'downshift';
 
-import { addField, translate, FieldTitle } from 'ra-core';
+import { addField, translate as withTranslate, FieldTitle } from 'ra-core';
 
 const styles = theme => createStyles({
     container: {
@@ -94,55 +93,8 @@ const styles = theme => createStyles({
  * <AutocompleteInput source="author_id" options={{ fullWidth: true }} />
  */
 export class AutocompleteInput extends React.Component {
-    state = {
-        searching: false,
-        searchText: '',
-        suggestions: [],
-        selectedItem: null,
-    };
-
-    ignoreNextChoicesUpdate = false;
     inputEl = null;
     anchorEl = null;
-
-    static getDerivedStateFromProps(props, state) {
-        const { choices, input, optionValue, optionText, allowEmpty } = props;
-        const selectedItem = choices.find(choice => choice[optionValue] === input.value);
-        const emptySuggestion = {
-            [optionValue]: null,
-            [optionText]: '',
-        };
-        const suggestions = allowEmpty ? props.choices.concat(emptySuggestion) : props.choices;
-        if (state.searching) {
-
-            return {
-                ...state,
-                selectedItem,
-                suggestions,
-            };
-        }
-
-        return {
-            ...state,
-            searchText: typeof optionText === 'function'
-                ? optionText(selectedItem)
-                : get(selectedItem, optionText, ''),
-            selectedItem,
-            suggestions: selectedItem ? (allowEmpty ? [selectedItem, emptySuggestion] : [selectedItem]) : suggestions
-        };
-    }
-
-    componentDidMount() {
-        const { optionText } = this.props;
-        const { selectedItem } = this.state;
-        if (selectedItem) {
-            this.updateFilter(selectedItem[optionText]);
-            this.setState({
-                suggestions: [selectedItem],
-                searchText: selectedItem[optionText],
-            });
-        }
-    }
 
     getSuggestionValue = suggestion => get(suggestion, this.props.optionValue);
 
@@ -161,110 +113,28 @@ export class AutocompleteInput extends React.Component {
             : suggestionLabel.toString();
     };
 
-    handleSuggestionSelected = (event, { suggestion, method }) => {
+    getSuggestionTextFromValue = value => {
+        const { choices } = this.props;
+        const currentChoice = choices.find(choice => this.getSuggestionValue(choice) === value);
+
+        return this.getSuggestionText(currentChoice);
+    }
+
+    handleSuggestionSelected = (suggestionText) => {
+        const { choices } = this.props;
+        const suggestion = choices.find(suggestion => this.getSuggestionText(suggestion) === suggestionText);
         const { input } = this.props;
 
         const inputValue = this.getSuggestionValue(suggestion);
-        this.setState({
-            searchText: suggestion.name,
-            searching: false,
-        });
         if (input && input.onChange) {
             input.onChange(inputValue);
         }
-
-        if (method === 'enter') {
-            event.preventDefault();
-        }
-    };
-
-    handleSuggestionsFetchRequested = ({ value }) => {
-        this.updateFilter(value);
     };
 
     updateFilter = (value) => {
         const { setFilter } = this.props;
         setFilter(value);
     }
-
-    handleSuggestionsClearRequested = () => {
-        this.setState({ suggestions: [], searching: false });
-    };
-
-    handleChangeFilter = (event, { newValue, method }) => {
-        switch (method) {
-            case 'type':
-            case 'escape':
-                {
-                    this.setState({ searchText: newValue, searching: true });
-                }
-                break;
-        }
-    };
-
-    renderInput = inputProps => {
-        const { helperText, input } = this.props;
-        const {
-            autoFocus,
-            className,
-            classes = {},
-            isRequired,
-            label,
-            meta,
-            onChange,
-            resource,
-            source,
-            value,
-            ref,
-            options: { InputProps, suggestionsContainerProps, ...options },
-            ...other
-        } = inputProps;
-        if (typeof meta === 'undefined') {
-            throw new Error(
-                "The TextInput component wasn't called within a redux-form <Field>. Did you decorate it and forget to add the addField prop to your component? See https://marmelab.com/react-admin/Inputs.html#writing-your-own-input-component for details."
-            );
-        }
-
-        const { touched, error } = meta;
-
-        // We need to store the input reference for our Popper element containg the suggestions
-        // but Autosuggest also needs this reference (it provides the ref prop)
-        const storeInputRef = input => {
-            this.inputEl = input;
-            this.updateAnchorEl();
-            ref(input);
-        };
-
-        return (
-            <TextField
-                label={
-                    <FieldTitle
-                        label={label}
-                        source={source}
-                        resource={resource}
-                        isRequired={isRequired}
-                    />
-                }
-                value={value}
-                onChange={onChange}
-                autoFocus={autoFocus}
-                margin="normal"
-                className={classnames(classes.root, className)}
-                inputRef={storeInputRef}
-                error={!!(touched && error)}
-                helperText={(touched && error) || helperText}
-                name={input.name}
-                {...options}
-                InputProps={{
-                    classes: {
-                        input: classes.input,
-                    },
-                    ...InputProps,
-                    ...other,
-                }}
-            />
-        );
-    };
 
     updateAnchorEl() {
         if (!this.inputEl) {
@@ -287,170 +157,163 @@ export class AutocompleteInput extends React.Component {
         }
     }
 
-    renderSuggestionsContainer = autosuggestOptions => {
-        const {
-            containerProps: { className, ...containerProps },
-            children,
-        } = autosuggestOptions;
-        const { classes = {}, options } = this.props;
+    getSuggestions = (filter) => {
+        const { choices, allowEmpty, optionText, optionValue } = this.props;
 
-        // Force the Popper component to reposition the popup only when this.inputEl is moved to another location
-        this.updateAnchorEl();
+        const filteredChoices = choices
+            .filter(choice => choice[optionText]
+            .match(new RegExp(filter, 'i')));
+
+        if (allowEmpty) {
+            const emptySuggestion = {
+                [optionText]: '',
+                [optionValue]: null,
+            }
+
+            return filteredChoices.concat(emptySuggestion);
+        }
+
+        return filteredChoices;
+    }
+
+    render() {
+        const {
+            classes = {},
+            input,
+        } = this.props;
+        const storeInputRef = input => {
+            this.inputEl = input;
+            this.updateAnchorEl();
+        };
 
         return (
-            <Popper
-                className={className}
-                open={Boolean(children)}
-                anchorEl={this.anchorEl}
-                placement="bottom-start"
-                {...options.suggestionsContainerProps}
+            <Downshift
+                id="downshift-popper"
+                onChange={this.handleSuggestionSelected}
+                initialInputValue={this.getSuggestionTextFromValue(input.value)}
             >
-                <Paper
-                    square
-                    className={classes.suggestionsPaper}
-                    {...containerProps}
-                >
-                    {children}
-                </Paper>
-            </Popper>
+                {({
+                    getInputProps,
+                    getItemProps,
+                    getMenuProps,
+                    highlightedIndex,
+                    isOpen,
+                    inputValue,
+                    selectedItem,
+                    openMenu,
+                    ...rest
+                }) => {
+                    return (
+                        <div className={classes.container}>
+                            {this.renderInput({
+                                fullWidth: true,
+                                classes,
+                                InputProps: getInputProps({
+                                    onFocus: openMenu,
+                                }),
+                                ref: storeInputRef,
+                            })}
+                            {/* // @TODO replace div with Popper and makes it work */}
+                            {
+                                isOpen ? (<div open={isOpen} anchorEl={this.inputEl}>
+                                    <div {...(isOpen ? getMenuProps({}) : {})}>
+                                        <Paper
+                                            square
+                                            style={{ marginTop: 8, width: this.inputEl ? this.inputEl.clientWidth : null }}
+                                        >
+                                        {this.getSuggestions(inputValue).map((suggestion, index) =>
+                                            this.renderSuggestion({
+                                                suggestion,
+                                                index,
+                                                itemProps: getItemProps({ item: this.getSuggestionText(suggestion) }),
+                                                highlightedIndex,
+                                                selectedItem,
+                                                inputValue
+                                            }),
+                                        )}
+                                        </Paper>
+                                    </div>
+                                </div>) : null
+                            }
+                        </div>
+                    );
+                }}
+            </Downshift>
         );
-    };
+    }
 
-    renderSuggestionComponent = ({
-        suggestion,
-        query,
-        isHighlighted,
-        ...props
-    }) => <div {...props} />;
+    renderInput = (inputProps) => {
+        const { InputProps, classes, ref, label, ...otherProps } = inputProps;
+        const { source, resource, isRequired, translate } = this.props;
+        return (
+            <TextField
+                label={
+                    <FieldTitle
+                        label={translate(label)}
+                        source={source}
+                        resource={resource}
+                        isRequired={isRequired}
+                    />
+                }
+                InputProps={{
+                    inputRef: ref,
+                    classes: {
+                        root: classes.inputRoot,
+                        input: classes.inputInput,
+                    },
+                    ...InputProps,
+                    onChange: (event) => {
+                        InputProps.onChange(event);
+                        this.updateFilter(event.target.value);
+                    },
+                }}
+                {...otherProps}
+            />
+        );
+    }
 
-    renderSuggestion = (suggestion, { query, isHighlighted }) => {
-        const label = this.getSuggestionText(suggestion);
-        const matches = match(label, query);
-        const parts = parse(label, matches);
-        const { classes = {}, suggestionComponent } = this.props;
+    renderSuggestion = ({ suggestion, index, itemProps, highlightedIndex, selectedItem, inputValue }) => {
+        const { classes } = this.props;
+        const isHighlighted = highlightedIndex === index
+        const suggestionText = this.getSuggestionText(suggestion);
+        const isSelected = (selectedItem || '').indexOf(suggestionText) > -1;
+        const matches = match(suggestionText, inputValue);
+        const parts = parse(suggestionText, matches);
 
         return (
             <MenuItem
+                {...itemProps}
+                key={suggestionText}
                 selected={isHighlighted}
-                component={
-                    suggestionComponent || this.renderSuggestionComponent
-                }
-                suggestion={suggestion}
-                query={query}
-                isHighlighted={isHighlighted}
+                component="div"
+                style={{
+                    fontWeight: isSelected ? 500 : 400,
+                }}
             >
                 <div>
-                    {parts.map((part, index) => {
-                        return part.highlight ? (
-                            <span
-                                key={index}
-                                className={classes.highlightedSuggestionText}
-                            >
-                                {part.text}
-                            </span>
-                        ) : (
-                            <strong
-                                key={index}
-                                className={classes.suggestionText}
-                            >
-                                {part.text}
-                            </strong>
-                        );
-                    })}
+                    {
+                        parts.map((part, index) => {
+                            return part.highlight ? (
+                                <span
+                                    key={index}
+                                    className={classes.highlightedSuggestionText}
+                                >
+                                    {part.text}
+                                </span>
+                            ) : (
+                                <strong
+                                    key={index}
+                                    className={classes.suggestionText}
+                                >
+                                    {part.text}
+                                </strong>
+                            );
+                        })
+                    }
                 </div>
             </MenuItem>
         );
     };
-
-    handleBlur = () => {
-        const { searching, searchText, selectedItem } = this.state;
-        const { allowEmpty, input } = this.props;
-        if (searching) {
-            if (!searchText && allowEmpty) {
-                input && input.onBlur && input.onBlur('');
-            } else {
-                input && input.onBlur && input.onBlur(this.getSuggestionValue(selectedItem));
-                this.setState({
-                    searching: false,
-                    searchText: this.getSuggestionText(selectedItem),
-                });
-            }
-        } else {
-            input && input.onBlur && input.onBlur(this.getSuggestionValue(selectedItem));
-        }
-    };
-
-    handleFocus = () => {
-        this.setState({ searching: true });
-    }
-
-    shouldRenderSuggestions = val => {
-        const { shouldRenderSuggestions } = this.props;
-        if (
-            shouldRenderSuggestions !== undefined &&
-            typeof shouldRenderSuggestions === 'function'
-        ) {
-            return shouldRenderSuggestions(val);
-        }
-
-        return true;
-    };
-
-    render() {
-        const {
-            alwaysRenderSuggestions,
-            classes = {},
-            isRequired,
-            label,
-            meta,
-            resource,
-            source,
-            className,
-            options,
-            ...rest
-        } = this.props;
-        const { searchText, suggestions } = this.state;
-
-        return (
-            <Autosuggest
-                theme={{
-                    container: classes.container,
-                    suggestionsContainerOpen: classes.suggestionsContainerOpen,
-                    suggestionsList: classes.suggestionsList,
-                    suggestion: classes.suggestion,
-                }}
-                renderInputComponent={this.renderInput}
-                suggestions={suggestions}
-                alwaysRenderSuggestions={alwaysRenderSuggestions}
-                onSuggestionSelected={this.handleSuggestionSelected}
-                onSuggestionsFetchRequested={
-                    this.handleSuggestionsFetchRequested
-                }
-                onSuggestionsClearRequested={
-                    this.handleSuggestionsClearRequested
-                }
-                renderSuggestionsContainer={this.renderSuggestionsContainer}
-                getSuggestionValue={this.getSuggestionText}
-                renderSuggestion={this.renderSuggestion}
-                shouldRenderSuggestions={this.shouldRenderSuggestions}
-                inputProps={{
-                    className,
-                    classes,
-                    isRequired,
-                    label,
-                    meta,
-                    onChange: this.handleChangeFilter,
-                    resource,
-                    source,
-                    value: searchText,
-                    onBlur: this.handleBlur,
-                    onFocus: this.handleFocus,
-                    options,
-                }}
-                {...rest}
-            />
-        );
-    }
 }
 
 AutocompleteInput.propTypes = {
@@ -489,6 +352,6 @@ AutocompleteInput.defaultProps = {
 
 export default compose(
     addField,
-    translate,
+    withTranslate,
     withStyles(styles)
 )(AutocompleteInput);
