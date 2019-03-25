@@ -3,15 +3,13 @@ import PropTypes from 'prop-types';
 import get from 'lodash/get';
 import Paper from '@material-ui/core/Paper';
 import Popper from '@material-ui/core/Popper';
-import MenuItem from '@material-ui/core/MenuItem';
 import { withStyles, createStyles } from '@material-ui/core/styles';
-import parse from 'autosuggest-highlight/parse';
-import match from 'autosuggest-highlight/match';
 import compose from 'recompose/compose';
 import Downshift from 'downshift';
-import AutocompleteInputTextField from './AutocompleteInputTextField';
-
 import { addField, translate as withTranslate, FieldTitle } from 'ra-core';
+
+import AutocompleteInputTextField from './AutocompleteInputTextField';
+import AutocompleteSuggestionItem from './AutocompleteSuggestionItem';
 
 const styles = theme => createStyles({
     container: {
@@ -26,12 +24,6 @@ const styles = theme => createStyles({
         maxHeight: '50vh',
         overflowY: 'auto',
     },
-    suggestion: {
-        display: 'block',
-        fontFamily: theme.typography.fontFamily,
-    },
-    suggestionText: { fontWeight: 300 },
-    highlightedSuggestionText: { fontWeight: 500 },
     suggestionsList: {
         margin: 0,
         padding: 0,
@@ -251,16 +243,18 @@ export class AutocompleteInput extends React.Component {
                                         style={{ marginTop: 8, width: this.inputEl ? this.inputEl.clientWidth : null }}
                                         className={classes.suggestionsPaper}
                                     >
-                                    {this.getSuggestions(inputValue).map((suggestion, index) =>
-                                        this.renderSuggestion({
-                                            suggestion,
-                                            index,
-                                            itemProps: getItemProps({ item: this.getSuggestionText(suggestion) }),
-                                            highlightedIndex,
-                                            selectedItem,
-                                            inputValue
-                                        }),
-                                    )}
+                                    {this.getSuggestions(inputValue).map((suggestion, index) => (
+                                        <AutocompleteSuggestionItem
+                                            key={this.getSuggestionValue(suggestion)}
+                                            suggestion={suggestion}
+                                            index={index}
+                                            itemProps={getItemProps({ item: this.getSuggestionText(suggestion) })}
+                                            highlightedIndex={highlightedIndex}
+                                            selectedItem={selectedItem}
+                                            inputValue={inputValue}
+                                            getSuggestionText={this.getSuggestionText}
+                                        />
+                                    ))}
                                     </Paper>
                                 </div>
                             </Popper>
@@ -270,57 +264,6 @@ export class AutocompleteInput extends React.Component {
             </Downshift>
         );
     }
-
-    renderSuggestion = ({
-        suggestion,
-        index,
-        itemProps,
-        highlightedIndex,
-        selectedItem,
-        inputValue,
-        suggestionComponent,
-    }) => {
-        const { classes } = this.props;
-        const isHighlighted = highlightedIndex === index
-        const suggestionText = this.getSuggestionText(suggestion);
-        const isSelected = (selectedItem || '').indexOf(suggestionText) > -1;
-        const matches = match(suggestionText, inputValue);
-        const parts = parse(suggestionText, matches);
-
-        return (
-            <MenuItem
-                {...itemProps}
-                key={suggestionText}
-                selected={isHighlighted}
-                component={suggestionComponent || 'div'}
-                style={{
-                    fontWeight: isSelected ? 500 : 400,
-                }}
-            >
-                <div className={classes.suggestion}>
-                    {
-                        parts.map((part, index) => {
-                            return part.highlight ? (
-                                <span
-                                    key={index}
-                                    className={classes.highlightedSuggestionText}
-                                >
-                                    {part.text}
-                                </span>
-                            ) : (
-                                <strong
-                                    key={index}
-                                    className={classes.suggestionText}
-                                >
-                                    {part.text}
-                                </strong>
-                            );
-                        })
-                    }
-                </div>
-            </MenuItem>
-        );
-    };
 }
 
 AutocompleteInput.propTypes = {
