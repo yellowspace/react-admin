@@ -21,8 +21,6 @@ const styles = theme => createStyles({
     },
     root: {},
     suggestionsContainerOpen: {
-        position: 'absolute',
-        marginBottom: theme.spacing.unit * 3,
         zIndex: 2,
     },
     suggestionsPaper: {
@@ -213,28 +211,26 @@ export class AutocompleteInput extends React.Component {
                                 }),
                                 ref: storeInputRef,
                             })}
-                            {/* // @TODO replace div with Popper and makes it work */}
-                            {
-                                isOpen ? (<div open={isOpen} anchorEl={this.inputEl}>
-                                    <div {...(isOpen ? getMenuProps({}) : {})}>
-                                        <Paper
-                                            square
-                                            style={{ marginTop: 8, width: this.inputEl ? this.inputEl.clientWidth : null }}
-                                        >
-                                        {this.getSuggestions(inputValue).map((suggestion, index) =>
-                                            this.renderSuggestion({
-                                                suggestion,
-                                                index,
-                                                itemProps: getItemProps({ item: this.getSuggestionText(suggestion) }),
-                                                highlightedIndex,
-                                                selectedItem,
-                                                inputValue
-                                            }),
-                                        )}
-                                        </Paper>
-                                    </div>
-                                </div>) : null
-                            }
+                            <Popper open={isOpen} anchorEl={this.inputEl} className={classes.suggestionsContainerOpen}>
+                                <div {...(isOpen ? getMenuProps() : {})} >
+                                    <Paper
+                                        square
+                                        style={{ marginTop: 8, width: this.inputEl ? this.inputEl.clientWidth : null }}
+                                        className={classes.suggestionsPaper}
+                                    >
+                                    {this.getSuggestions(inputValue).map((suggestion, index) =>
+                                        this.renderSuggestion({
+                                            suggestion,
+                                            index,
+                                            itemProps: getItemProps({ item: this.getSuggestionText(suggestion) }),
+                                            highlightedIndex,
+                                            selectedItem,
+                                            inputValue
+                                        }),
+                                    )}
+                                    </Paper>
+                                </div>
+                            </Popper>
                         </div>
                     );
                 }}
