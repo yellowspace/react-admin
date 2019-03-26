@@ -4,12 +4,13 @@ import get from 'lodash/get';
 import { withStyles, createStyles } from '@material-ui/core/styles';
 import compose from 'recompose/compose';
 import Downshift from 'downshift';
-import { addField, translate as withTranslate, FieldTitle } from 'ra-core';
+import { addField, translate as withTranslate } from 'ra-core';
 
 import AutocompleteInputTextField from './AutocompleteInputTextField';
 import AutocompleteSuggestionList from './AutocompleteSuggestionList';
+import getSuggestions from './getSuggestions';
 
-const styles = theme => createStyles({
+const styles = createStyles({
     container: {
         flexGrow: 1,
         position: 'relative',
@@ -146,27 +147,6 @@ export class AutocompleteInput extends React.Component {
         }
     }
 
-    getSuggestions = (filter) => {
-        const { choices, allowEmpty, optionText, optionValue, limitChoicesToValue } = this.props;
-
-        const filteredChoices = limitChoicesToValue ? choices
-            .filter(choice => choice[optionText]
-            .match(new RegExp(filter, 'i'))) : choices;
-
-        if (allowEmpty) {
-            const emptySuggestion = typeof optionText === 'function' ? {
-                [optionValue]: null,
-            } : {
-                [optionText]: '',
-                [optionValue]: null,
-            }
-
-            return filteredChoices.concat(emptySuggestion);
-        }
-
-        return filteredChoices;
-    }
-
     shouldRenderSuggestions = val => {
         const { shouldRenderSuggestions } = this.props;
         if (
@@ -190,6 +170,11 @@ export class AutocompleteInput extends React.Component {
             resource,
             isRequired,
             fullWidth,
+            choices,
+            allowEmpty,
+            optionText,
+            optionValue,
+            limitChoicesToValue,
         } = this.props;
         const storeInputRef = input => {
             this.inputEl = input;
@@ -232,7 +217,14 @@ export class AutocompleteInput extends React.Component {
                                 isOpen={isMenuOpen}
                                 menuProps={getMenuProps({}, { suppressRefError: true })}
                                 inputEl={this.inputEl}
-                                getSuggestions={this.getSuggestions}
+                                suggestions={getSuggestions({
+                                    choices,
+                                    allowEmpty,
+                                    optionText,
+                                    optionValue,
+                                    limitChoicesToValue,
+                                    getSuggestionText: this.getSuggestionText
+                                })(inputValue)}
                                 getSuggestionText={this.getSuggestionText}
                                 getSuggestionValue={this.getSuggestionValue}
                                 highlightedIndex={highlightedIndex}
