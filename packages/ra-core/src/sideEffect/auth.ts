@@ -39,12 +39,12 @@ export default (authProvider?: AuthProvider) => {
     };
 };
 
-const nextPathnameSelector = state => {
+export const nextPathnameSelector = state => {
     const locationState = state.router.location.state;
     return locationState && locationState.nextPathname;
 };
 
-const currentPathnameSelector = state => state.router.location;
+export const currentPathnameSelector = state => state.router.location;
 
 export const handleLogin = (authProvider: AuthProvider) =>
     function*(action) {
