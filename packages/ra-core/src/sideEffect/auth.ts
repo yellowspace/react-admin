@@ -23,6 +23,7 @@ import {
 } from '../actions/authActions';
 import { FETCH_ERROR } from '../actions/fetchActions';
 import { AUTH_LOGIN, AUTH_CHECK, AUTH_ERROR, AUTH_LOGOUT } from '../auth';
+import { clearState } from '../actions/clearActions';
 
 export default (authProvider?: AuthProvider) => {
     if (!authProvider) {
@@ -89,17 +90,18 @@ export const handleCheck = (authProvider: AuthProvider) =>
                     state: { nextPathname: meta.pathName },
                 })
             );
+            yield put(clearState());
         }
     };
 
 export const handleLogout = (authProvider: AuthProvider) =>
     function*(action) {
         const { payload } = action;
-
         const redirectTo = yield call(authProvider, AUTH_LOGOUT);
         yield put(
             push((payload && payload.redirectTo) || redirectTo || '/login')
         );
+        yield put(clearState());
     };
 
 export const handleFetchError = (authProvider: AuthProvider) =>
@@ -116,6 +118,7 @@ export const handleFetchError = (authProvider: AuthProvider) =>
                     state: { nextPathname },
                 })
             );
+            yield put(clearState());
             yield put(hideNotification());
             yield put(
                 showNotification('ra.notification.logged_out', 'warning')
