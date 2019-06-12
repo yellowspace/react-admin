@@ -13,12 +13,13 @@ import TestContext from './TestContext';
  *
  * @param {ReactNode} component: The component you want to test in jsx
  * @param {Object} initialstate: Optional initial state of the redux store
+ * @param {Object} options: Render options, e.g. to use a custom container element
  * @return {{ dispatch, reduxStore, ...rest }} helper function to test rendered component.
  * Same as react-testing-library render method with added dispatch and reduxStore helper
  * dispatch: spy on the redux stroe dispatch method
  * reduxStore: the redux store used by the tested component
  */
-export default (component, initialState = {}) => {
+export default (component, initialState = {}, options = {}) => {
     let dispatch;
     let reduxStore;
     const renderResult = render(
@@ -28,7 +29,8 @@ export default (component, initialState = {}) => {
                 reduxStore = store;
                 return component;
             }}
-        </TestContext>
+        </TestContext>,
+        options
     );
 
     return {
