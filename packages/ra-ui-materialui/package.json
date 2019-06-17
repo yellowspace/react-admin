@@ -27,9 +27,10 @@
     },
     "devDependencies": {
         "@material-ui/core": "^4.1.1",
-        "@material-ui/styles": "^4.1.1",
         "@material-ui/icons": "^4.2.0",
+        "@material-ui/styles": "^4.1.1",
         "cross-env": "^5.2.0",
+        "css-mediaquery": "^0.1.2",
         "enzyme": "~3.9.0",
         "enzyme-adapter-react-16": "~1.12.1",
         "file-api": "~0.10.4",
@@ -45,8 +46,8 @@
     },
     "dependencies": {
         "@material-ui/core": "^4.1.1",
-        "@material-ui/styles": "^4.1.1",
         "@material-ui/icons": "^4.2.0",
+        "@material-ui/styles": "^4.1.1",
         "autosuggest-highlight": "^3.1.1",
         "classnames": "~2.2.5",
         "connected-react-router": "^6.4.0",

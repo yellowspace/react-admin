@@ -2,12 +2,13 @@ import React from 'react';
 import expect from 'expect';
 import { render, cleanup } from 'react-testing-library';
 
-import { Pagination } from './Pagination';
+import Pagination from './Pagination';
+import DeviceTestWrapper from '../layout/DeviceTestWrapper';
 
 describe('<Pagination />', () => {
     const defaultProps = {
         perPage: 10,
-        translate: x => x,
+        setPage: () => null,
     };
 
     afterEach(cleanup);
@@ -66,13 +67,14 @@ describe('<Pagination />', () => {
     describe('mobile', () => {
         it('should not render a rowsPerPage choice', () => {
             const { queryByText } = render(
-                <Pagination
-                    {...defaultProps}
-                    page={2}
-                    perPage={5}
-                    total={15}
-                    width="xs"
-                />
+                <DeviceTestWrapper width="sm">
+                    <Pagination
+                        {...defaultProps}
+                        page={2}
+                        perPage={5}
+                        total={15}
+                    />
+                </DeviceTestWrapper>
             );
             expect(queryByText('ra.navigation.page_rows_per_page')).toBeNull();
         });
@@ -81,13 +83,15 @@ describe('<Pagination />', () => {
     describe('desktop', () => {
         it('should render rowsPerPage choice', () => {
             const { queryByText } = render(
-                <Pagination
-                    {...defaultProps}
-                    page={2}
-                    perPage={5}
-                    total={15}
-                    width="md"
-                />
+                <DeviceTestWrapper width="lg">
+                    <Pagination
+                        {...defaultProps}
+                        page={2}
+                        perPage={5}
+                        total={15}
+                        width="md"
+                    />
+                </DeviceTestWrapper>
             );
 
             expect(
