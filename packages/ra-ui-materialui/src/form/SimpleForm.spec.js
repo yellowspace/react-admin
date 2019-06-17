@@ -26,9 +26,7 @@ describe('<SimpleForm />', () => {
                 <TextInput source="name" />
             </SimpleForm>
         );
-        const button = wrapper.find(
-            'WithTheme(WithWidth(WithStyles(Toolbar)))'
-        );
+        const button = wrapper.find('WithWidth(WithStyles(Toolbar))');
         assert.equal(button.length, 1);
     });
 
@@ -39,9 +37,7 @@ describe('<SimpleForm />', () => {
                 <TextInput source="name" />
             </SimpleForm>
         );
-        const button1 = wrapper1.find(
-            'WithTheme(WithWidth(WithStyles(Toolbar)))'
-        );
+        const button1 = wrapper1.find('WithWidth(WithStyles(Toolbar))');
         assert.equal(button1.prop('submitOnEnter'), false);
 
         const wrapper2 = shallow(
@@ -49,9 +45,7 @@ describe('<SimpleForm />', () => {
                 <TextInput source="name" />
             </SimpleForm>
         );
-        const button2 = wrapper2.find(
-            'WithTheme(WithWidth(WithStyles(Toolbar)))'
-        );
+        const button2 = wrapper2.find('WithWidth(WithStyles(Toolbar))');
         assert.equal(button2.prop('submitOnEnter'), true);
     });
 });
