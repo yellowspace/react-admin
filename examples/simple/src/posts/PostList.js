@@ -22,7 +22,7 @@ import {
     SingleFieldList,
     TextField,
     TextInput,
-    useMediaIsSmall,
+    useMediaQuery,
     useTranslate,
 } from 'react-admin'; // eslint-disable-line import/no-unresolved
 
@@ -111,7 +111,7 @@ const PostPanel = ({ id, record, resource }) => (
 
 const PostList = props => {
     const classes = useStyles();
-    const isSmall = useMediaIsSmall();
+    const isSmall = useMediaQuery(theme => theme.breakpoints.down('sm'));
     return (
         <List
             {...props}
