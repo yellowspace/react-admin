@@ -11,6 +11,7 @@ import useVersion from './useVersion';
 import useSortState from './useSortState';
 import usePaginationState from './usePaginationState';
 import useListController from './useListController';
+import useReference from './useReference';
 import { useCheckMinimumRequiredProps } from './checkMinimumRequiredProps';
 export {
     getListControllerProps,
@@ -25,6 +26,7 @@ export {
     useVersion,
     useSortState,
     usePaginationState,
+    useReference,
 };
 
 export * from './field';
